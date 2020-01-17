@@ -42,7 +42,6 @@ import java.util.Map;
 public class Camera {
   private final SurfaceTextureEntry flutterTexture;
   private final CameraManager cameraManager;
-  private final OrientationEventListener orientationEventListener;
   private final boolean isFrontFacing;
   private final int sensorOrientation;
   private final String cameraName;
@@ -59,7 +58,6 @@ public class Camera {
   private MediaRecorder mediaRecorder;
   private boolean recordingVideo;
   private CamcorderProfile recordingProfile;
-  private int currentOrientation = ORIENTATION_UNKNOWN;
 
   // Mirrors camera.dart
   public enum ResolutionPreset {
@@ -88,18 +86,6 @@ public class Camera {
     this.flutterTexture = flutterTexture;
     this.dartMessenger = dartMessenger;
     this.cameraManager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
-    orientationEventListener =
-        new OrientationEventListener(activity.getApplicationContext()) {
-          @Override
-          public void onOrientationChanged(int i) {
-            if (i == ORIENTATION_UNKNOWN) {
-              return;
-            }
-            // Convert the raw deg angle to the nearest multiple of 90.
-            currentOrientation = (int) Math.round(i / 90.0) * 90;
-          }
-        };
-    orientationEventListener.enable();
 
     CameraCharacteristics characteristics = cameraManager.getCameraCharacteristics(cameraName);
     StreamConfigurationMap streamConfigurationMap =
@@ -507,14 +493,9 @@ public class Camera {
   public void dispose() {
     close();
     flutterTexture.release();
-    orientationEventListener.disable();
   }
 
   private int getMediaOrientation() {
-    final int sensorOrientationOffset =
-        (currentOrientation == ORIENTATION_UNKNOWN)
-            ? 0
-            : (isFrontFacing) ? -currentOrientation : currentOrientation;
-    return (sensorOrientationOffset + sensorOrientation + 360) % 360;
+    return (sensorOrientation + 360) % 360;
   }
 }
